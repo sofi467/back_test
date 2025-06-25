@@ -1,0 +1,2 @@
+GRADE_MIN = 0
+GRADE_MAX = 5

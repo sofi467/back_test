@@ -8,6 +8,7 @@ from services.university.models.group.group_request import GroupRequest
 from services.university.models.student.student_reguest import StudentRequest
 from services.university.models.teacher.teacher_request import TeacherRequest
 from services.university.models.grade.grade_request import GradeRequest
+from services.constans import GRADE_MAX, GRADE_MIN
 
 faker = Faker()
 
@@ -33,7 +34,7 @@ class TestGradeCreate:
 
         grade_request = GradeRequest(teacher_id=teacher_response.id,
                                      student_id=student_response.id,
-                                     grade=random.randint(0, 5))
+                                     grade = random.randint(GRADE_MIN, GRADE_MAX))
         grade_response = university_service.create_grade(grade_request)
 
         assert student_response.id == grade_response.student_id, \
