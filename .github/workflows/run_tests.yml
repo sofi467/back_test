@@ -58,7 +58,7 @@ jobs:
 
   generate-report:
     runs-on: ubuntu-lates
-    needs: test
+    needs: tests
     name: Generate report
     steps:
       - name: Install Java
