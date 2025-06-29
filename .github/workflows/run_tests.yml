@@ -46,6 +46,8 @@ jobs:
           echo UNIVERSITY_SERVICE_API_URL=${{ secrets.UNIVERSITY_SERVICE_API_URL }} >> .env;
           docker compose up -d
           continue-on-error: true
+      - name: Show .env file
+        run: cat docker/.env
       - name: Run tests
         run:
          pytest --alluredir=allure-results #запускаем тесты и сохраняем результаты в папку
