@@ -33,18 +33,20 @@ jobs:
           python-version: "3.12"
       - name: install dependencies
         run: pip install -r requirements.txt
+      - name: Create .env file
+        run: |
+          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} > docker/.env
+          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> docker/.env
+          echo POSTGRES_DB_AUTH=${{ vars.POSTGRES_DB_AUTH }} >> docker/.env
+          echo POSTGRES_DB_UNIVERSITY=${{ vars.POSTGRES_DB_UNIVERSITY }} >> docker/.env
+          echo AUTH_SERVICE_INTERNAL_URL=${{ vars.AUTH_SERVICE_INTERNAL_URL }} >> docker/.env
+          echo AUTH_SERVICE_API_URL=${{ vars.AUTH_SERVICE_API_URL }} >> docker/.env
+          echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ vars.UNIVERSITY_SERVICE_INTERNAL_URL }} >> docker/.env
+          echo UNIVERSITY_SERVICE_API_URL=${{ vars.UNIVERSITY_SERVICE_API_URL }} >> docker/.env
       - name: Run Docker Compose
         run: |
           cd docker
-          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} > .env
-          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-          echo POSTGRES_DB_AUTH=${{ vars.POSTGRES_DB_AUTH }} >> .env
-          echo POSTGRES_DB_UNIVERSITY=${{ vars.POSTGRES_DB_UNIVERSITY }} >> .env
-          echo AUTH_SERVICE_INTERNAL_URL=${{ vars.AUTH_SERVICE_INTERNAL_URL }} >> .env
-          echo AUTH_SERVICE_API_URL=${{ vars.AUTH_SERVICE_API_URL }} >> .env
-          echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ vars.UNIVERSITY_SERVICE_INTERNAL_URL }} >> .env
-          echo UNIVERSITY_SERVICE_API_URL=${{ vars.UNIVERSITY_SERVICE_API_URL }} >> .env
-          docker compose --env-file ./env up -d
+          docker compose up -d
       - name: Run tests
         run: |
             docker run --rm \
