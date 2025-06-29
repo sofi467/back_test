@@ -38,30 +38,29 @@ jobs:
           cd docker
           echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} > .env
           echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-          echo POSTGRES_DB_AUTH=${{ secrets.POSTGRES_DB_AUTH }} >> .env
-          echo POSTGRES_DB_UNIVERSITY=${{ secrets.POSTGRES_DB_UNIVERSITY }} >> .env
-          echo AUTH_SERVICE_INTERNAL_URL=${{ secrets.AUTH_SERVICE_INTERNAL_URL }} >> .env
-          echo AUTH_SERVICE_API_URL=${{ secrets.AUTH_SERVICE_API_URL }} >> .env
-          echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ secrets.UNIVERSITY_SERVICE_INTERNAL_URL }} >> .env
-          echo UNIVERSITY_SERVICE_API_URL=${{ secrets.UNIVERSITY_SERVICE_API_URL }} >> .env
+          echo POSTGRES_DB_AUTH=${{ vars.POSTGRES_DB_AUTH }} >> .env
+          echo POSTGRES_DB_UNIVERSITY=${{ vars.POSTGRES_DB_UNIVERSITY }} >> .env
+          echo AUTH_SERVICE_INTERNAL_URL=${{ vars.AUTH_SERVICE_INTERNAL_URL }} >> .env
+          echo AUTH_SERVICE_API_URL=${{ vars.AUTH_SERVICE_API_URL }} >> .env
+          echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ vars.UNIVERSITY_SERVICE_INTERNAL_URL }} >> .env
+          echo UNIVERSITY_SERVICE_API_URL=${{ vars.UNIVERSITY_SERVICE_API_URL }} >> .env
           docker compose --env-file ./env up -d
-        continue-on-error: true
-      - name: Show .env file
-        run: cat docker/.env
       - name: Run tests
-        run:
-         pytest --alluredir=allure-results #запускаем тесты и сохраняем результаты в папку
+        run: |
+            docker run --rm \
+            --network host \
+            -v $(pwd):/workspace \
+            -w /workspace \
+            sofi467/tests:latest \
+            python -m pytest --alluredir=allure-results
         continue-on-error: true
-      - name: Show postgres-auth logs if failed
-        if: failure()
-        run: docker logs postgres-auth || true
       - name: Upload Allure results  # Загружаем результаты тестов в GitHub Actions
         if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
         uses: actions/upload-artifact@v4
         with:
           name: allure-results  # Название артефакта
           path: allure-results
-          retention-days: 1# Путь к файлам отчета
+          retention-days: 1 # Путь к файлам отчета
 
   generate-report:
     runs-on: ubuntu-latest
@@ -81,16 +80,16 @@ jobs:
       - name: Download all workflow run artifacts #скачиваем все артефакты, которые были ранее сгенерированы
         uses: actions/download-artifact@v4
       - name: Allure generate
-        run: allure generate -c allure-results -o _site #генерация результатов
+        run: allure generate -c allure-results -o allure-report #генерация результатов
       - name: Store generated report
         uses: actions/upload-artifact@v4
         with:
-          name: _site  # Название артефакта
-          path: _site
+          name: allure-report  # Название артефакта
+          path: allure-report
           retention-days: 1
 
 
-  publish-report:  # Джоба для публикации Allure-отчета на GitHub Pages
+  publish-report: # Джоба для публикации Allure-отчета на GitHub Pages
     name: Publish report
     runs-on: ubuntu-latest
     needs: generate-report
@@ -106,11 +105,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-
-
-
-
-
-
-
