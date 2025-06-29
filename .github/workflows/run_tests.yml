@@ -49,6 +49,9 @@ jobs:
         run:
          pytest --alluredir=allure-results #запускаем тесты и сохраняем результаты в папку
         continue-on-error: true
+      - name: Show postgres-auth logs if failed
+        if: failure()
+        run: docker logs postgres-auth || true
       - name: Upload Allure results  # Загружаем результаты тестов в GitHub Actions
         if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
         uses: actions/upload-artifact@v4
