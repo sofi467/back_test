@@ -1,0 +1,114 @@
+name: Automated tests
+
+on:
+  push
+
+#Задачи к выполнению
+jobs:
+  #Задача
+  lint:
+    runs-on: ubuntu-latest
+    #шаги к задаче
+    steps:
+      - name: Checkout repository #название шагов
+        uses: actions/checkout@v3
+      - name: setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run Ruff
+        run: ruff check --output-format=github .
+
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - name: install dependencies
+        run: pip install -r requirements.txt
+      - name: Create .env file
+        run: |
+          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} > docker/.env
+          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> docker/.env
+          echo POSTGRES_DB_AUTH=${{ vars.POSTGRES_DB_AUTH }} >> docker/.env
+          echo POSTGRES_DB_UNIVERSITY=${{ vars.POSTGRES_DB_UNIVERSITY }} >> docker/.env
+          echo AUTH_SERVICE_INTERNAL_URL=${{ vars.AUTH_SERVICE_INTERNAL_URL }} >> docker/.env
+          echo AUTH_SERVICE_API_URL=${{ vars.AUTH_SERVICE_API_URL }} >> docker/.env
+          echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ vars.UNIVERSITY_SERVICE_INTERNAL_URL }} >> docker/.env
+          echo UNIVERSITY_SERVICE_API_URL=${{ vars.UNIVERSITY_SERVICE_API_URL }} >> docker/.env
+      - name: Run Docker Compose
+        run: |
+          cd docker
+          docker compose up -d
+      - name: Run tests
+        run: |
+          docker run --rm \
+          --network host \
+          -v $(pwd):/workspace \
+          -w /workspace \
+          sofi467/tests:latest \
+          python -m pytest --alluredir=allure-results
+        continue-on-error: true
+      - name: Upload Allure results  # Загружаем результаты тестов в GitHub Actions
+        if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results  # Название артефакта
+          path: allure-results
+          retention-days: 1 # Путь к файлам отчета
+
+  generate-report:
+    runs-on: ubuntu-latest
+    needs: tests
+    name: Generate report
+    steps:
+      - name: Install Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'microsoft'
+          java-version: '21'
+      - name: Install allure
+        run:
+          sudo wget https://github.com/allure-framework/allure2/releases/download/2.23.1/allure-2.23.1.tgz
+          && sudo tar -zxvf allure-2.23.1.tgz -C /opt/
+          && sudo ln -s /opt/allure-2.23.1/bin/allure /usr/bin/allure
+      - name: Download all workflow run artifacts #скачиваем все артефакты, которые были ранее сгенерированы
+        uses: actions/download-artifact@v4
+      - name: Allure generate
+        run: allure generate -c allure-results -o allure-report #генерация результатов
+      - name: Store generated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report  # Название артефакта
+          path: allure-report
+          retention-days: 1
+
+
+  publish-report: # Джоба для публикации Allure-отчета на GitHub Pages
+    name: Publish report
+    runs-on: ubuntu-latest
+    needs: generate-report
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Download all workflow run artifacts #скачиваем все артефакты, которые были ранее сгенерированы
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report
+          path: allure-report
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
