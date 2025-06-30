@@ -43,20 +43,18 @@ jobs:
           echo AUTH_SERVICE_API_URL=${{ vars.AUTH_SERVICE_API_URL }} >> docker/.env
           echo UNIVERSITY_SERVICE_INTERNAL_URL=${{ vars.UNIVERSITY_SERVICE_INTERNAL_URL }} >> docker/.env
           echo UNIVERSITY_SERVICE_API_URL=${{ vars.UNIVERSITY_SERVICE_API_URL }} >> docker/.env
-#      - name: Show .env file
-#        run: cat docker/.env
       - name: Run Docker Compose
         run: |
           cd docker
           docker compose up -d
       - name: Run tests
         run: |
-            docker run --rm \
-            --network host \
-            -v $(pwd):/workspace \
-            -w /workspace \
-            sofi467/tests:latest \
-            python -m pytest --alluredir=allure-results
+          docker run --rm \
+          --network host \
+          -v $(pwd):/workspace \
+          -w /workspace \
+          sofi467/tests:latest \
+          python -m pytest --alluredir=allure-results
         continue-on-error: true
       - name: Upload Allure results  # Загружаем результаты тестов в GitHub Actions
         if: always()  # Загружаем файлы независимо от успеха/неуспеха тестов
